@@ -98,28 +98,14 @@ if (sensorValue == HIGH)
 {
   digitalWrite(A4, HIGH);
 
-  if (sensorState == LOW && isArmed)
+  if (sensorState == LOW && isArmed && !isAlarmed)
   {
-    movementDetectTime = millis();
-    countdownStartTime = millis();
+    DetectMovement();
   }
 }
-
 else
 {
   digitalWrite(A4, LOW);
-}
-if (sensorValue == HIGH && isArmed)
-{
-  if (elapsedTime >= 10000 && !isAlarmed)
-  {
-    TriggerAlarm();
-  }
-
-  if (elapsedTime < 10000 && isArmed)
-  {
-    readRfid();
-  }
 }
 
   if (mfrc522.PICC_IsNewCardPresent()) {
@@ -185,6 +171,8 @@ void DetectMovement()
 
   for (int i = 10; i > 0; i--)
   {
+    ReadRfid();
+
     if (isArmed)
     {
     lcd.setCursor(10, 1);
@@ -192,10 +180,18 @@ void DetectMovement()
     lcd.print(" ");
     delay(1000);
     }
+    else
+    {
+      break;
+    }
   }
 
   if (isArmed)
   {
+    tone(9, 1000);
+      lcd.clear();
+      lcd.print("ALARM!!!");
+      isAlarmed = true;
   }
 }
 
@@ -228,8 +224,6 @@ void ReadRfid()
       {
         if (!isArmed)
         {
-        lcd.clear();
-        lcd.print("Invalid Key");
         tone(9, 1000);
         delay(200);
         noTone(9);
@@ -243,15 +237,9 @@ void ReadRfid()
         noTone(9);
         }
       }
-}
-
-void TriggerAlarm()
-{
-
-    tone(9, 1000);
-      lcd.clear();
-      lcd.print("ALARM!!!");
-      isAlarmed = true;
+    }
+  }
+  mfrc522.PICC_HaltA();
 }
 
 void ToggleArm()
@@ -266,11 +254,15 @@ void ToggleArm()
   }
   else
   {
+    isArmed = true;
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Sys activate in:");
     for (int i = 10; i > 0; i--)
     {
+      ReadRfid();
+      if (isArmed)
+      {
       lcd.setCursor(0, 1);
       delay(1000);
       lcd.print(i);
@@ -287,8 +279,12 @@ void ToggleArm()
         delay(500);
         noTone(9);
       }
+      }
+      else
+      {
+        break;
+      }
     }
-    isArmed = true;
     stateChanged = true;
   }
 }
